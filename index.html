@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <title>PixelMe - Professional Pixel Art & PBN Studio</title>
+    
+    <!-- 🚀 Script & Font Loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- 🌐 Google Identity Services สำหรับ Login -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <!-- 🎨 เชื่อมต่อไฟล์ CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- 🌐 Google Translate Setup -->
+    <div id="google_translate_element" style="display:none;"></div>
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({pageLanguage: 'en', autoDisplay: false}, 'google_translate_element');
+        }
+    </script>
+    <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async defer></script>
+
+    <!-- 🍞 Custom Toast -->
+    <div id="toast" class="toast glass"></div>
+
+    <!-- 👤 App Header Navigation -->
+    <header class="app-header glass">
+        <div class="header-left">
+            <div class="logo" onclick="location.reload()">
+                <img src="logo.png" alt="PixelMe Logo">
+                 PixelMe
+            </div>
+            <div class="header-left">
+            
+            <!-- 🟢 ส่วนที่แก้ไขใหม่: เมนู Tools Dropdown และ Support Us -->
+            <div class="header-nav-container">
+                <div class="tools-dropdown">
+                    <button class="header-btn">🛠️ Tools ▾</button>
+                    <div class="tools-dropdown-content">
+                        <button id="tabAuto" class="active" onclick="switchActiveTab('AUTO')">Auto Pixel Art</button>
+                        <button id="tabManual" onclick="switchActiveTab('MANUAL')">Blank Canvas</button>
+                    </div>
+                </div>
+                
+                <!-- 🟢 ปุ่มทดลอง Premium -->
+                <button class="header-support-btn" id="btnTryPremium" onclick="activateTrial()" style="display: none; color: var(--warning); border: 1px solid var(--warning);">🎁 Try Premium</button>
+                <button class="header-support-btn" id="btnToggleMode" onclick="toggleQuotaMode()" style="display: none; transition: 0.3s;"></button>
+                <button class="header-support-btn" id="btnSupportUs" onclick="openPackages()">💎 Support us</button>
+                
+            </div>
+            
+        </div>
+        </div>
+
+        <div class="auth-area" id="authArea">
+            <!-- Rendered by JS -->
+        </div>
+        
+        <!-- Settings Dropdown -->
+        <div class="dropdown-menu" id="settingsDropdown">
+            <button class="dropdown-item" id="btnAccount" onclick="openAccountModal()" style="display: none;">👤 Account Details</button>
+            <button class="dropdown-item" id="menuThemeToggle">🌙 Dark Mode</button>
+            <button class="dropdown-item" onclick="openLanguage()">🌐 Change Language</button>
+            <button class="dropdown-item" onclick="openPackages()">💎 Pricing</button>
+            <button class="dropdown-item" id="btnManageSub" onclick="manageSubscription()" style="display: none;">⚙️ Manage Subscription</button>
+            <button class="dropdown-item" onclick="openFeedbackModal()">💬 Feedback</button>
+            <button class="dropdown-item" style="color: var(--danger);" onclick="processLogout()">🚪 Log Out</button>
+        </div>
+    </header>
+
+    <!-- 🔐 Authentication Modal -->
+    <div class="modal-overlay" id="authModal">
+        <div class="auth-container">
+            <div class="close-modal" onclick="closeAuthModal()">×</div>
+            <div class="auth-tabs">
+                <div class="auth-tab" id="tabLogin" onclick="switchAuthTab('login')">Log In</div>
+                <div class="auth-tab" id="tabSignup" onclick="switchAuthTab('signup')">Sign Up</div>
+            </div>
+            
+            <!-- 🟢 โค้ดตั้งค่า Google -->
+            <div id="g_id_onload"
+                 data-client_id="69202104731-mjr9km6etjdslf3ljmkc77bc5nfacekj.apps.googleusercontent.com"
+                 data-context="signin"
+                 data-ux_mode="popup"
+                 data-callback="handleGoogleResponse"
+                 data-auto_prompt="false">
+            </div>
+
+            <!-- Login Form -->
+            <div class="auth-form" id="formLogin">
+                <div style="display: flex; justify-content: center; width: 100%; margin-bottom: 10px;">
+                    <div class="g_id_signin"
+                         data-type="standard"
+                         data-shape="rectangular"
+                         data-theme="outline"
+                         data-text="signin_with"
+                         data-size="large"
+                         data-logo_alignment="left"
+                         data-width="280">
+                    </div>
+                </div>
+                <div class="auth-divider">OR</div>
+                <input type="email" id="loginEmail" class="auth-input" placeholder="Email Address">
+                <input type="password" id="loginPassword" class="auth-input" placeholder="Password" autocomplete="current-password">
+                <div id="loginError" style="color: var(--danger); font-size: 12px; display: none;">Invalid email or password.</div>
+                <button class="btn-primary" style="width: 100%; margin-top: 5px; border:none;" onclick="processManualLogin()">Log In</button>
+            </div>
+            
+            <!-- Signup Form -->
+            <div class="auth-form" id="formSignup">
+                <!-- 🟢 ครอบปุ่มด้วย div นี้เพื่อบังคับให้อยู่กึ่งกลางเป๊ะๆ -->
+                <div style="display: flex; justify-content: center; width: 100%; margin-bottom: 10px;">
+                    <div class="g_id_signin"
+                         data-type="standard"
+                         data-shape="rectangular"
+                         data-theme="outline"
+                         data-text="signup_with"
+                         data-size="large"
+                         data-logo_alignment="left"
+                         data-width="280">
+                    </div>
+                </div>
+                <div class="auth-divider">OR</div>
+                <input type="text" id="signupName" class="auth-input" placeholder="Name">
+                <input type="email" id="signupEmail" class="auth-input" placeholder="Email Address">
+                <input type="password" id="signupPassword" class="auth-input" placeholder="Create Password">
+                <div class="auth-terms">
+                    <input type="checkbox" id="termsCheck">
+                    <label for="termsCheck">I agree to the <a onclick="openLegal('tos')">Terms of Service</a> and <a onclick="openLegal('privacy')">Privacy Policy</a>.</label>
+                </div>
+                <div id="signupError" style="color: var(--danger); font-size: 12px; display: none;">Please fill all fields and agree to terms.</div>
+                <button class="btn-primary" style="width: 100%; margin-top: 5px; border:none;" onclick="processManualSignup()">Create Account</button>
+            </div>
+
+            <!-- 🟢 ฟอร์มกรอก OTP (เพิ่มใหม่: ถูกซ่อนไว้ตอนแรก จะโชว์ก็ต่อเมื่อกด Sign up สำเร็จ) -->
+            <div class="auth-form" id="formOtp" style="display: none;">
+                <h3 style="text-align: center; margin-bottom: 10px;">Check your email</h3>
+                <p style="text-align: center; font-size: 14px; color: #666; margin-bottom: 20px;">
+                    We've sent a 6-digit verification code to <br>
+                    <strong id="otpEmailDisplay" style="color: var(--primary);"></strong>
+                </p>
+                
+                <!-- ช่องกรอกตัวเลข 6 หลัก (จัดให้ตัวใหญ่ พิมพ์ง่าย) -->
+                <input type="text" id="otpInput" class="auth-input" placeholder="000000" maxlength="6" 
+                       style="text-align: center; letter-spacing: 15px; font-size: 24px; font-weight: bold; padding: 15px;">
+                
+                <!-- แจ้งเตือนเวลาพิมพ์รหัสผิด -->
+                <div id="otpError" style="color: var(--danger); font-size: 13px; display: none; text-align: center; margin-top: 10px;">
+                    Invalid or expired code. Please try again.
+                </div>
+                
+                <button class="btn-primary" id="btnVerifyOtp" style="width: 100%; margin-top: 20px; border:none; padding: 12px; font-size: 16px;" onclick="processOtpVerification()">
+                    Verify & Continue
+                </button>
+                
+                <div style="text-align: center; margin-top: 15px;">
+                    <a href="#" onclick="switchAuthTab('signup')" style="font-size: 14px; color: #888; text-decoration: underline;">
+                        ← Use a different email
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 🚨 Custom Confirm Modal -->
+    <div class="modal-overlay" id="customConfirmModal">
+        <div class="auth-container" style="max-width: 350px; text-align: center; padding: 30px;">
+            <h3 style="margin-top: 0; color: var(--text); font-size: 20px;" id="confirmTitle">Are you sure?</h3>
+            <div style="display: flex; gap: 10px; width: 100%; margin-top: 20px;">
+                <button class="btn-text" style="flex: 1; border: 1px solid var(--brd);" onclick="closeCustomConfirm()">Cancel</button>
+                <button class="btn-primary" style="flex: 1; border: none; background: var(--danger);" id="confirmActionBtn">Remove</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🚨 Export Preview & Download Confirm Modal -->
+    <div class="modal-overlay" id="downloadConfirmModal">
+        <div class="auth-container" style="max-width: 600px; text-align: center; padding: 30px 30px;">
+            <div class="close-modal" onclick="closeDownloadConfirm()">×</div>
+            <h3 style="margin-top: 0; color: var(--text); font-size: 22px;">Export Preview</h3>
+            
+            <p id="dlConfirmDesc" style="color: var(--text-mut); font-size: 13px; line-height: 1.6; margin-bottom: 15px;"></p>
+            
+            <!-- 🟢 ปรับให้เลื่อนขึ้นลงได้ (overflow-y: auto) และจำกัดความสูงที่ 50vh -->
+            <div id="exportPreviewArea" style="display: flex; flex-direction: column; gap: 20px; overflow-y: auto; overflow-x: hidden; padding: 20px 15px; background: var(--bg); border-radius: 16px; margin-bottom: 25px; max-height: 50vh; align-items: stretch; border: 1px solid var(--brd);">
+            </div>
+
+            <div style="display: flex; gap: 10px; width: 100%;">
+                <button class="btn-text" style="flex: 1; border: 1px solid var(--brd);" onclick="closeDownloadConfirm()">Cancel</button>
+                <button class="btn-primary" style="flex: 1; border: none;" onclick="proceedDownload()">⬇️ Download Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🚨 Generic Limit Exceeded Modal -->
+    <div class="modal-overlay" id="limitExceededModal">
+        <div class="auth-container" style="max-width: 400px; text-align: center; padding: 40px 30px;">
+            <div class="close-modal" onclick="document.getElementById('limitExceededModal').classList.remove('show')">×</div>
+            <h3 id="limitModalTitle" style="margin-top: 0; color: var(--danger); font-size: 22px;">Limit Reached</h3>
+            <p id="limitModalDesc" style="color: var(--text-mut); font-size: 14px; line-height: 1.6; margin-bottom: 25px;">Limit message goes here.</p>
+            <button class="btn-primary" style="width: 100%; border: none;" onclick="document.getElementById('limitExceededModal').classList.remove('show'); openPackages();">Check Pricing</button>
+        </div>
+    </div>
+
+    <!-- 📜 Legal & Feedback Modals -->
+    <div class="modal-overlay" id="legalModal"><div class="legal-content"><div class="close-modal" onclick="closeLegalModal()">×</div><h3 id="legalTitle">Legal</h3><div id="legalBody" style="margin-top: 20px;"></div><button class="btn-primary" style="margin-top: 30px; width: 100%; border:none;" onclick="closeLegalModal()">I Understand</button></div></div>
+    <div class="modal-overlay" id="feedbackModal"><div class="auth-container" style="max-width: 500px;"><div class="close-modal" onclick="closeFeedbackModal()">×</div><h3 style="margin-top: 0; color: var(--text); font-size: 22px;">Send Feedback</h3><p style="color: var(--text-mut); font-size: 14px; margin-bottom: 20px;">Report bugs or send us private suggestions.</p><textarea id="feedbackText" class="auth-input" rows="5" placeholder="Type your feedback here..." style="resize: vertical; font-family: 'Inter', sans-serif; margin-bottom: 15px;"></textarea><button class="btn-primary" style="width: 100%; border:none;" onclick="submitFeedback()">Send Feedback</button></div></div>
+    <div class="modal-overlay" id="addReviewModal"><div class="auth-container" style="max-width: 500px;"><div class="close-modal" onclick="closeAddReviewModal()">×</div><h3 style="margin-top: 0; color: var(--text); font-size: 22px;">Write a Review</h3><p style="color: var(--text-mut); font-size: 14px; margin-bottom: 20px;">Share your experience with other users!</p><textarea id="newReviewText" class="auth-input" rows="5" placeholder="Type your review here..." style="resize: vertical; font-family: 'Inter', sans-serif; margin-bottom: 15px;"></textarea><button class="btn-primary" style="width: 100%; border:none;" onclick="submitAddReview()">Post Review</button></div></div>
+    
+    <!-- 🌐 Language Modal -->
+    <div class="modal-overlay" id="languageModal">
+        <div class="pricing-container" style="max-width: 700px; background: var(--card-bg); padding: 40px; border-radius: 24px; border: 1px solid var(--brd); box-shadow: var(--sh-lg); flex-direction: column;">
+            <div class="close-modal" onclick="closeLanguage()">×</div>
+            <h2 style="margin-top:0; color: var(--text); text-align: left;">Select Language</h2>
+            <div class="lang-grid">
+                <button class="lang-btn active" data-lang="en">English</button>
+                <button class="lang-btn" data-lang="th">ภาษาไทย</button>
+                <button class="lang-btn" data-lang="es">Español</button>
+                <button class="lang-btn" data-lang="ja">日本語</button>
+                <button class="lang-btn" data-lang="zh-TW">中文</button>
+            </div>
+        </div>
+    </div>
+
+<!-- 👤 Account Details Modal -->
+    <div class="modal-overlay" id="accountModal">
+        <div class="auth-container" style="max-width: 450px;">
+            <div class="close-modal" onclick="closeAccountModal()">×</div>
+            <h3 style="margin-top: 0; color: var(--text); font-size: 22px;">Account Details</h3>
+            
+            <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 5px;">
+                <!-- Email (ล็อกไว้ ห้ามแก้) -->
+                <div class="color-input-wrapper">
+                    <label>Email Address</label>
+                    <input type="text" id="accEmail" class="auth-input" disabled style="opacity: 0.6; cursor: not-allowed;">
+                </div>
+                
+                <!-- Name (แก้ได้) -->
+                <div class="color-input-wrapper">
+                    <label>Edit Your Name</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="accName" class="auth-input" style="flex: 1;">
+                        <button class="btn-primary" id="btnSaveName" style="padding: 10px 15px; border-radius: 10px; font-size: 14px;" onclick="saveAccountName()">Save</button>
+                    </div>
+                </div>
+
+                <!-- Current Plan -->
+                <div style="background: var(--input-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--brd); margin-top: 10px;">
+                    <label style="font-size: 11px; color: var(--text-mut); font-weight: 700; text-transform: uppercase;">Current Plan</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                        <div style="font-size: 18px; font-weight: bold; color: var(--text);" id="accTierDisplay">BASIC</div>
+                        <div style="font-size: 13px; color: var(--success); font-weight: 600;" id="accBillingDate">Free Plan</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📦 Package Pricing Modal -->
+    <div class="modal-overlay" id="packageModal">
+        <div class="pricing-container">
+            <div class="close-modal" onclick="closePackages()" style="top: 0; right: 0; position:absolute; z-index:99;">×</div>
+            
+            <div class="pricing-card">
+                <div class="pkg-title">Basic</div>
+                <div class="pkg-desc">Perfect for quick, automated pixel art generation.</div>
+                <div class="pkg-price">Free</div>
+                <ul class="pkg-features">
+                    <li>Auto Pixel Art (10 DL / day)</li>
+                    <li>Blank Canvas (1 DL / day)</li>
+                    <li>Download Paint by Numbers</li>
+                    <li>Up to 15 Colors</li>
+                    <li>Fixed Grid (50x65)</li>
+                </ul>
+                <button class="pkg-btn" id="btnBuyBasic" onclick="upgradeTier('BASIC')">Current Plan</button>
+            </div>
+
+            <div class="pricing-card">
+                <div class="pkg-title">Economy</div>
+                <div class="pkg-desc">More control over your colors and grid size.</div>
+                <div class="pkg-price">$8.99<span>/mo</span></div>
+                <ul class="pkg-features">
+                    <li>Auto Pixel Art (Unlimited DL)</li>
+                    <li>Blank Canvas (5 DL / day)</li>
+                    <li>Custom Grid Size (up to 300x300)</li>
+                    <li>Custom Max Colors (up to 100)</li>
+                    <li>Edit Generated Palette</li>
+                    <li>Export to PDF & ZIP</li>
+                </ul>
+                <button class="pkg-btn" id="btnBuyEco" onclick="upgradeTier('ECO')">Upgrade to Economy</button>
+            </div>
+
+            <div class="pricing-card premium">
+                <div class="pkg-title">Premium</div>
+                <div class="pkg-desc">Full creative control. Draw from scratch or edit pixels.</div>
+                <div class="pkg-price">$11.99<span>/mo</span></div>
+                <ul class="pkg-features">
+                    <li><b>Unlimited Downloads (All)</b></li>
+                    <li>Add Custom Colors (+ Add New)</li>
+                    <li>Paint directly on the grid</li>
+                    <li>Full Undo / Redo History</li>
+                    <li>All Economy features</li>
+                    <li>Priority Export High-Res</li>
+                </ul>
+                <button class="pkg-btn" id="btnBuyPremium" onclick="upgradeTier('PREMIUM')">Upgrade to Premium</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🪄 Main App Container -->
+    <div class="app-container" id="appContainer">
+        <!-- Sidebar Box -->
+        <div class="box-wrapper" id="mainBoxWrapper">
+            <div class="box-handle" id="menuToggleBtn" onclick="toggleSidebar()">➕ ADD</div>
+            <div class="box glass">
+                
+                <h2 id="mainTitle">🎨 Welcome To PixelMe</h2>
+                <div class="welcome-desc" id="welcomeDesc">
+                    Transform your photos into stunning pixel art and ready-to-print Color-by-Number templates instantly.
+                </div>
+
+                <div class="global-settings" id="globalSettingsPanel" style="display: none;">
+                    <div style="font-size:16px; font-weight:700; color:var(--text); margin-bottom:10px; width:100%; text-align:left;">🎛️ Change Config:</div>
+                    <div class="flex-center" style="background:var(--input-bg); border-radius:12px; padding:6px; border:1px solid var(--brd);">
+                        <label id="lblColors">Colors <input type="number" id="globalColors" value="24" min="2" max="100"></label>
+                        <label>Cols <input type="number" id="globalCols" value="50" min="5" max="300"></label>
+                        <label>Rows <input type="number" id="globalRows" value="65" min="5" max="300"></label>
+                    </div>
+                </div>
+
+                <div id="autoView" class="view-section active">
+                    <div id="dropZone" class="drop-zone">
+                        <span class="drop-icon">🖼️</span>
+                        <div id="dropText" style="pointer-events: none;">
+                            <strong>Drag and drop images here</strong><br>
+                            <span style="font-size: 13px; color: var(--text-mut);">(PNG, JPG, WEBP)</span>
+                        </div>
+                        <div id="previewContainer" class="preview-container"></div>
+                    </div>
+                    
+                    <div class="upload-buttons">
+                        <button type="button" class="btn-upload" onclick="document.getElementById('imageLoader').click()">Select Files</button>
+                    </div>
+                    <input type="file" id="imageLoader" accept="image/*" multiple style="display: none;">
+                    
+                    <div class="flex-center" style="gap:10px; margin-top:10px;">
+                        <button id="processBtn" class="btn-primary" disabled style="border:none;">Generate Workspaces</button>
+                        <button id="clearBtnAuto" class="btn-danger" style="border:none;">Clear</button>
+                    </div>
+                </div>
+
+                <div id="manualView" class="view-section">
+                    <div style="text-align: center; color: var(--text-mut); margin-bottom: 30px; font-size: 14px;">Create an empty grid and draw pixel art from scratch.</div>
+                    <div class="flex-center" style="gap:10px;">
+                        <button id="createBlankBtn" class="btn-primary" style="border:none;">New Canvas</button>
+                        <button id="clearBtnManual" class="btn-danger" style="border:none;">Clear</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            
+            <!-- ⭐ Landing Page Content -->
+            <div class="landing-page-content" id="landingPageContent">
+                
+                <!-- Section 1: Reviews -->
+                <section class="landing-section">
+                    <div class="review-header">
+                        <h3>User Reviews</h3>
+                        <a class="write-btn" onclick="openAddReviewModal()">✏️ Write a Review</a>
+                    </div>
+                    <div class="review-carousel-container">
+                        <button class="nav-btn-sm" onclick="prevReview()">&#10094;</button>
+                        <div class="review-track-wrapper">
+                            <div class="review-track" id="reviewTrack">
+                                <!-- Reviews injected by JS -->
+                            </div>
+                        </div>
+                        <button class="nav-btn-sm" onclick="nextReview()">&#10095;</button>
+                    </div>
+                </section>
+
+                <!-- Section 2: Why PixelMe -->
+                <section class="landing-section">
+                    <h3>Why PixelMe</h3>
+                    <p>Turn hours of frustration into seconds of magic. We built PixelMe to completely eliminate the tedious complexity of creating pixel art and mapping color-by-number grids. Whether you're a casual hobbyist or a professional artist, PixelMe empowers you to instantly transform any photo into a print-ready masterpiece with just a few clicks. Stop struggling with complicated software and start creating!</p>
+                </section>
+
+                <!-- Section 3: How It Works -->
+                <section class="landing-section">
+                    <h3>How It Works</h3>
+                    <div class="steps-grid">
+                        <div class="step-card">
+                            <div class="step-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            </div>
+                            <h4>1. Upload or Create</h4>
+                            <p>Drop your favorite photo or start with a fresh blank canvas.</p>
+                        </div>
+                        <div class="step-card">
+                            <div class="step-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                            </div>
+                            <h4>2. Adjust Settings</h4>
+                            <p>Tweak the grid size and maximum colors to fit your style.</p>
+                        </div>
+                        <div class="step-card">
+                            <div class="step-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+                            </div>
+                            <h4>3. Edit & Refine</h4>
+                            <p>Use our built-in brush and fill tools to perfect every pixel.</p>
+                        </div>
+                        <div class="step-card">
+                            <div class="step-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                            </div>
+                            <h4>4. Export & Print</h4>
+                            <p>Download your artwork and numbered grids as PDF or ZIP.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Section 4: Features -->
+                <section class="landing-section">
+                    <h3>Key Features</h3>
+                    <div class="features-grid">
+                        <div class="feature-card">
+                            <h4>Basic Starter <span class="badge basic">Free Forever</span></h4>
+                            <p>Essential tools for instant magic. Generate beautiful pixel art and PBN grids up to 15 colors instantly.</p>
+                        </div>
+                        <div class="feature-card">
+                            <h4>Economy Builder <span class="badge eco">Economy</span></h4>
+                            <p>Break the limits with massive 300x300 grids, up to 100 colors, palette tweaking, and unlimited auto downloads.</p>
+                        </div>
+                        <div class="feature-card">
+                            <h4>Premium Studio <span class="badge premium">Premium</span></h4>
+                            <p>The ultimate creator's studio. Command the canvas with pro drawing tools, custom colors, and priority exports.</p>
+                        </div>
+                        <div class="feature-card">
+                            <h4>Seamless Export <span class="badge all">All Tiers</span></h4>
+                            <p>Pack your artwork into perfectly sized PDFs ready for home printing or ZIP folders for digital use.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Section 5: What is Color by Number -->
+                <section class="landing-section">
+                    <h3>What is Color by Number?</h3>
+                    <p>Pixel art is a digital art form where images are built pixel by pixel, offering a charming, retro aesthetic. <b>Color-by-Number</b> (or Paint-by-Number) takes this concept into the physical world. It maps an image to a numbered grid, where each number corresponds to a specific color palette. By following the guide, anyone can recreate complex, beautiful artwork flawlessly. It's a highly relaxing, stress-relieving activity perfect for artists and hobbyists of all ages!</p>
+                </section>
+
+                <!-- Section 6: FAQ (Dropdown Accordion) -->
+                <section class="landing-section">
+                    <h3>Frequently Asked Questions</h3>
+                    <div class="faq-list" id="faqAccordion">
+                        <div class="faq-item">
+                            <div class="faq-question"><h4>1. Is PixelMe really free to use?</h4><svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+                            <div class="faq-answer"><p>Yes! Our Basic plan is 100% free and allows up to 10 automated image conversions and 1 blank canvas per day.</p></div>
+                        </div>
+                        <div class="faq-item">
+                            <div class="faq-question"><h4>2. What is a Paint-by-Number (PBN) grid?</h4><svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+                            <div class="faq-answer"><p>It's a generated template where your image is converted into outlines with numbers. Each number corresponds to a specific color in the palette, making it easy to paint or color physically.</p></div>
+                        </div>
+                        <div class="faq-item">
+                            <div class="faq-question"><h4>3. Can I use PixelMe on my phone or tablet?</h4><svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+                            <div class="faq-answer"><p>Absolutely! Our interface is fully responsive, so you can generate, edit, and draw pixel art right from your mobile browser.</p></div>
+                        </div>
+                        <div class="faq-item">
+                            <div class="faq-question"><h4>4. How do I print my generated artwork?</h4><svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+                            <div class="faq-answer"><p>Click "Download Workspaces", select your paper size (like Letter 8.5"x11"), and export as a PDF. It will be perfectly scaled for your home printer.</p></div>
+                        </div>
+                        <div class="faq-item">
+                            <div class="faq-question"><h4>5. Can I change the colors if I don't like them?</h4><svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+                            <div class="faq-answer"><p>Yes! With the Economy or Premium plans, you can easily edit the generated palette, swap hex codes, or add entirely new custom colors.</p></div>
+                        </div>
+                        <div class="faq-item">
+                            <div class="faq-question"><h4>6. What file formats are supported for upload?</h4><svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+                            <div class="faq-answer"><p>We support all standard web image formats including PNG, JPG, JPEG, and WEBP.</p></div>
+                        </div>
+                        <div class="faq-item">
+                            <div class="faq-question"><h4>7. Will I lose my work if I switch tabs?</h4><svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+                            <div class="faq-answer"><p>No! Switching between Auto Pixel Art and Blank Canvas keeps your work safe. However, we recommend downloading your workspaces before closing the browser completely.</p></div>
+                        </div>
+                        <div class="faq-item">
+                            <div class="faq-question"><h4>8. How does the Unlimited Blank Canvas work?</h4><svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+                            <div class="faq-answer"><p>Premium users bypass the daily canvas limits entirely. You can create as many blank grids as you want and use all our drawing tools to create art from scratch.</p></div>
+                        </div>
+                    </div>
+                </section>
+                
+            </div> <!-- End Landing Page Content -->
+
+            <!-- Workspace Sliders -->
+            <div id="sliderNav">
+                <button id="prevSlide" title="Previous Page">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <button id="nextSlide" title="Next Page">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </div>
+
+            <div id="resultsContainer"></div>
+
+            <div id="globalExportContainer" class="global-export-section">
+                <div class="export-title">Export Settings</div>
+                <div class="format-selector flex-center">
+                    <label style="background:transparent;">Paper 
+                        <select id="global_paper_size">
+                            <option value="5x8">5" x 8" (Pocket)</option>
+                            <option value="5.5x8.5">5.5" x 8.5" (Digest)</option>
+                            <option value="6x9">6" x 9" (Trade)</option>
+                            <option value="7x10">7" x 10" (Comic)</option>
+                            <option value="8.5x11" selected>8.5" x 11" (Letter)</option>
+                        </select>
+                    </label>
+                    <span style="border-left: 1px solid var(--brd); height: 30px;"></span>
+                    <label style="background:transparent;">Format 
+                        <select id="global_format">
+                            <option value="pdf">PDF Document</option>
+                            <option value="zip">ZIP Archive</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="export-options flex-center">
+                    <label><input type="checkbox" id="global_dl_art" checked> Pixel Art</label>
+                    <label id="pbnCheckboxWrapper"><input type="checkbox" id="global_dl_pbn" checked> Paint by Numbers</label>
+                    <label><input type="checkbox" id="global_dl_pal" checked> Palette Reference</label>
+                </div>
+                <button class="download-btn btn-primary" id="global_dl_btn" style="border:none;">Download Workspaces</button>
+            </div>
+            <footer class="app-footer">
+                <div class="footer-logo">
+                    <img src="logo.png" alt="PixelMe Logo" style="height: 20px; width: auto; border-radius: 4px;">
+                    PixelMe
+                </div>
+                <div class="footer-links">
+                    <a onclick="openLegal('tos')">Terms of Service</a>
+                    <span style="color: var(--brd);">•</span>
+                    <a onclick="openLegal('privacy')">Privacy Policy</a>
+                </div>
+                <div class="footer-copy">© 2026 PixelMe. All rights reserved.</div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- 🏝️ Clean Floating Island Toggle -->
+    <div id="viewToggle">
+        <button id="btnVert" class="active" title="Scroll Vertical">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="6" x2="12" y2="18"></line><polyline points="9 9 12 6 15 9"></polyline><polyline points="15 15 12 18 9 15"></polyline></svg>
+        </button>
+        <button id="btnHorz" title="Slide Horizontal">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect><line x1="6" y1="12" x2="18" y2="12"></line><polyline points="9 9 6 12 9 15"></polyline><polyline points="15 9 18 12 15 15"></polyline></svg>
+        </button>
+    </div>
+
+    <!-- 🛠️ เชื่อมต่อไฟล์ JavaScript -->
+    <script src="app.js"></script>
+</body>
+</html>
