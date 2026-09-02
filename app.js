@@ -2,7 +2,7 @@
 const jsPDF = window.jspdf ? window.jspdf.jsPDF : null;
 const $ = id => document.getElementById(id);
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://pixelme-back.onrender.com/api';
 
 // 🔴 🔴 🔴 3. เอา Client ID ของคุณมาใส่ตรงนี้อีก 1 ที่ 🔴 🔴 🔴
 const GOOGLE_CLIENT_ID = '69202104731-mjr9km6etjdslf3ljmkc77bc5nfacekj.apps.googleusercontent.com';
