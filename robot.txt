@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://pixelme-mu.vercel.app/sitemap.xml
