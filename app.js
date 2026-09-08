@@ -15,6 +15,7 @@ let currentSlide = 0;
 let manualCount = 1;
 const defaultSwatches = ['#EF4444', '#F97316', '#F59E0B', '#84CC16', '#10B981', '#06B6D4', '#3B82F6', '#6366F1', '#8B5CF6', '#D946EF', '#F43F5E', '#000000', '#6B7280', '#FFFFFF'];
 // 🟢 สร้างตัวแปรเก็บค่าสี Fixed Palette เริ่มต้น (เตรียมเผื่อไว้สูงสุด 100 สีสำหรับ Premium)
+// 🟢 สร้างตัวแปรเก็บค่าสี Fixed Palette เริ่มต้น
 let globalFixedPalette = ['#EF4444','#F97316','#F59E0B','#84CC16','#10B981','#06B6D4','#3B82F6','#6366F1','#8B5CF6','#D946EF','#F43F5E','#000000','#6B7280','#9CA3AF','#FFFFFF'];
 for(let i=15; i<100; i++) globalFixedPalette.push('#FFFFFF'); 
 
@@ -35,7 +36,19 @@ const renderFixedPalette = () => {
     box.innerHTML = html;
     
     box.querySelectorAll('.fixed-color-pick').forEach(inp => {
-        inp.onchange = (e) => { globalFixedPalette[e.target.dataset.idx] = e.target.value.toUpperCase(); };
+        // 🟢 เปลี่ยนมาใช้ 'input' เพื่อให้สีในภาพเปลี่ยนตามทันทีตอนลากเมาส์
+        inp.addEventListener('input', (e) => {
+            let hex = e.target.value.toUpperCase();
+            let idx = parseInt(e.target.dataset.idx);
+            globalFixedPalette[idx] = hex;
+
+            // 🟢 วิ่งไปสั่งอัปเดตทุกภาพที่เปิดโหมด Fixed ไว้แบบ Real-time
+            appWorkspaces.forEach(ws => {
+                if(ws.isFixed && ws.updateFixedColor) {
+                    ws.updateFixedColor(idx, hex);
+                }
+            });
+        });
     });
 };
 
@@ -1218,6 +1231,26 @@ function buildWorkspace(fileName, img, tier, isManual, useFixedPal = false) {
               uBtn:w.querySelector('.u-btn'), rBtn:w.querySelector('.r-btn') }
     };
     const lCol = w.querySelector('.l-col'); const lW = w.querySelector('.l-w'); const lH = w.querySelector('.l-h');
+    // 🟢 จดจำว่าภาพนี้ถูกสร้างมาด้วยระบบ Fixed Palette
+    s.isFixed = useFixedPal;
+
+    // 🟢 สร้างตัวรับคำสั่งเปลี่ยนสีจาก Global
+    s.updateFixedColor = (idx, hex) => {
+        if (idx < s.pal.length) {
+            let rgb = hexToRgb(hex);
+            if (rgb) {
+                s.pal[idx] = rgb;
+                // สั่งให้วาดกระดานใหม่ด้วยสีใหม่ทันที
+                drawPal(); 
+                drawGrid();
+                
+                // อัปเดตกล่องเครื่องมือแก้ไขสีด้วย (ถ้ามี)
+                if (s.actIdx === idx && canEditPalette) {
+                    syncPopupColors(hex);
+                }
+            }
+        }
+    };
     appWorkspaces.push(s);
 
     w.querySelector('.btn-delete-workspace').onclick = () => { 
