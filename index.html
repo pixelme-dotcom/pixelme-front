@@ -380,6 +380,15 @@
                     <div class="upload-buttons">
                         <button type="button" class="btn-upload" onclick="document.getElementById('imageLoader').click()">Select Files</button>
                     </div>
+                    <div class="fixed-palette-section" style="width: 100%; max-width: 600px; margin-top: 10px; margin-bottom: 10px; text-align: left;">
+                        <label style="display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; font-size:14px; font-weight:600; color:var(--text); background:var(--input-bg); padding:10px 15px; border-radius:12px; border:1px solid var(--brd); transition:0.2s;">
+                             <input type="checkbox" id="useFixedPalette" style="width:18px; height:18px; accent-color:var(--primary);"> 
+                                🎨 Use Fixed Palette (Apply to all images)
+                        </label>
+                        <div id="fixedPaletteBox" style="display:none; margin-top:10px; gap:10px; flex-wrap:wrap; padding: 20px; background: var(--card-bg); border-radius: 12px; border: 1px dashed var(--brd); box-shadow: var(--sh-sm); justify-content: center;">
+                             <!-- JS จะสร้างช่องเลือกสีมาใส่ตรงนี้อัตโนมัติ -->
+                        </div>
+                    </div>
                     <input type="file" id="imageLoader" accept="image/*" multiple style="display: none;">
                     
                     <div class="flex-center" style="gap:10px; margin-top:10px;">

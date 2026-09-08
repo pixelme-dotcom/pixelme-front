@@ -14,6 +14,30 @@ let isHorizontal = false;
 let currentSlide = 0;
 let manualCount = 1;
 const defaultSwatches = ['#EF4444', '#F97316', '#F59E0B', '#84CC16', '#10B981', '#06B6D4', '#3B82F6', '#6366F1', '#8B5CF6', '#D946EF', '#F43F5E', '#000000', '#6B7280', '#FFFFFF'];
+// 🟢 สร้างตัวแปรเก็บค่าสี Fixed Palette เริ่มต้น (เตรียมเผื่อไว้สูงสุด 100 สีสำหรับ Premium)
+let globalFixedPalette = ['#EF4444','#F97316','#F59E0B','#84CC16','#10B981','#06B6D4','#3B82F6','#6366F1','#8B5CF6','#D946EF','#F43F5E','#000000','#6B7280','#9CA3AF','#FFFFFF'];
+for(let i=15; i<100; i++) globalFixedPalette.push('#FFFFFF'); 
+
+const renderFixedPalette = () => {
+    const box = $('fixedPaletteBox');
+    if (!box) return;
+    
+    let isBasic = (userTier === 'BASIC' && activeQuotaMode !== 'TRIAL');
+    let maxC = isBasic ? 15 : (parseInt($('globalColors').value) || 24);
+    
+    let html = '';
+    for (let i = 0; i < maxC; i++) {
+        html += `<div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+                    <input type="color" class="fixed-color-pick" data-idx="${i}" value="${globalFixedPalette[i]}" style="width:32px; height:32px; border:none; border-radius:8px; cursor:pointer; padding:0; background:transparent;">
+                    <span style="font-size:10px; color:var(--text-mut); font-weight:bold;">${i+1}</span>
+                 </div>`;
+    }
+    box.innerHTML = html;
+    
+    box.querySelectorAll('.fixed-color-pick').forEach(inp => {
+        inp.onchange = (e) => { globalFixedPalette[e.target.dataset.idx] = e.target.value.toUpperCase(); };
+    });
+};
 
 let sessionUser = null;
 let pendingVerificationEmail = ''; // 🟢 เพิ่มตัวแปรสำหรับจำอีเมลที่กำลังรอ OTP
@@ -631,6 +655,20 @@ window.onload = async () => {
     await checkPaymentSuccess(); 
     initReviews();
     initFAQ();
+    
+    // 🟢 ดักจับการเปิด/ปิดสวิตช์ Fixed Palette
+    if($('useFixedPalette')) {
+        $('useFixedPalette').addEventListener('change', (e) => {
+            $('fixedPaletteBox').style.display = e.target.checked ? 'flex' : 'none';
+            if(e.target.checked) renderFixedPalette();
+        });
+    }
+    // 🟢 ถ้า User พรีเมียมเปลี่ยนจำนวนสี ให้ช่องเลือกสีอัปเดตตาม
+    if($('globalColors')) {
+        $('globalColors').addEventListener('change', () => {
+            if($('useFixedPalette') && $('useFixedPalette').checked) renderFixedPalette();
+        });
+    }
 };
 
 const openAuthModal = (tab) => { $('authModal').classList.add('show'); switchAuthTab(tab); $('loginError').style.display = 'none'; $('signupError').style.display = 'none'; };
@@ -1038,11 +1076,15 @@ $('processBtn').onclick = async () => {
     const queue = [...selectedFiles]; selectedFiles=[]; $('previewContainer').innerHTML='';
     $('dropText').innerHTML=`<strong>Drag and drop images here</strong><br><span style="font-size:13px; color:var(--text-mut);">(PNG, JPG, WEBP)</span>`;
     
+    // 🟢 เช็คว่าผู้ใช้เปิดสวิตช์ Fixed Palette ไว้หรือไม่
+    const isFixed = $('useFixedPalette') && $('useFixedPalette').checked;
+    
     await new Promise(r => setTimeout(r, 50));
     for(let f of queue) {
         await new Promise(resolve => { 
             let i = new Image(); 
-            i.onload = () => { setTimeout(() => { try { buildWorkspace(f.name, i, userTier, false); } catch(err) { console.error(err); } resolve(); }, 50); }; 
+            // 🟢 ส่งพารามิเตอร์ isFixed เข้าไปท้ายสุด
+            i.onload = () => { setTimeout(() => { try { buildWorkspace(f.name, i, userTier, false, isFixed); } catch(err) { console.error(err); } resolve(); }, 50); }; 
             i.onerror = () => resolve(); i.src = URL.createObjectURL(f); 
         });
     }
@@ -1061,7 +1103,7 @@ $('createBlankBtn').onclick = () => {
     updateSliderView();
 };
 
-function buildWorkspace(fileName, img, tier, isManual) {
+function buildWorkspace(fileName, img, tier, isManual, useFixedPal = false) {
     const wid = 'ws_' + Date.now() + Math.random().toString(36).substr(2,5);
     const w = document.createElement('div'); w.className = 'workspace'; w.id = wid;
     
@@ -1274,6 +1316,26 @@ function buildWorkspace(fileName, img, tier, isManual) {
         if (isManual) {
             s.pal = [{r:255,g:255,b:255}, {r:0,g:0,b:0}]; s.grid=[]; 
             for(let r=0; r<R; r++) { s.grid[r]=[]; for(let c=0; c<C; c++) s.grid[r][c]=0; }
+            finishInitArt();
+        } else if (useFixedPal) {
+            let tr=C/R, sr=img.width/img.height, sw=img.width, sh=img.height, sx=0, sy=0;
+            if(sr>tr){ sw=sh*tr; sx=(img.width-sw)/2; } else { sh=sw/tr; sy=(img.height-sh)/2; }
+            let tc = document.createElement('canvas').getContext('2d', {willReadFrequently:true}); tc.canvas.width=C; tc.canvas.height=R;
+            tc.fillStyle='#fff'; tc.fillRect(0,0,C,R); tc.drawImage(img, sx, sy, sw, sh, 0, 0, C, R);
+            
+            // ดึงสีจากพาเลตต์ส่วนกลางมาใช้ตามโควต้าของ User
+            s.pal = globalFixedPalette.slice(0, maxC).map(h => hexToRgb(h)); 
+            s.grid=[];
+            let imgDataArr = tc.getImageData(0,0,C,R).data;
+            for(let r=0; r<R; r++) {
+                s.grid[r]=[];
+                for(let c=0; c<C; c++) {
+                    let id=(r*C+c)*4, pr=imgDataArr[id], pg=imgDataArr[id+1], pb=imgDataArr[id+2];
+                    let best=0, min=Infinity; 
+                    s.pal.forEach((pl,i)=>{ let d=sqDist({r:pr,g:pg,b:pb}, pl); if(d<min){min=d;best=i;} }); 
+                    s.grid[r][c]=best; // แทนค่าสีพิกเซลด้วยสีที่ใกล้เคียงที่สุดจาก Palette ของเรา
+                }
+            }
             finishInitArt();
         } else {
             let tr=C/R, sr=img.width/img.height, sw=img.width, sh=img.height, sx=0, sy=0;
