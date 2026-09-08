@@ -51,6 +51,14 @@ const renderFixedPalette = () => {
         });
     });
 };
+// 🟢 ฟังก์ชันสำหรับเปิด/ปิดกล่องสี (สั่งตรงจาก HTML)
+window.toggleFixedPalette = (isChecked) => {
+    const box = $('fixedPaletteBox');
+    if (box) {
+        box.style.display = isChecked ? 'flex' : 'none';
+        if (isChecked) renderFixedPalette();
+    }
+};
 
 let sessionUser = null;
 let pendingVerificationEmail = ''; // 🟢 เพิ่มตัวแปรสำหรับจำอีเมลที่กำลังรอ OTP
